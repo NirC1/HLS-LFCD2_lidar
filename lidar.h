@@ -6,7 +6,7 @@
 
 #define BLOCK_SIZE 42
 
-struct block{
+struct rawBlock_type{
   byte bytes[BLOCK_SIZE];
 };
 
@@ -29,7 +29,8 @@ class Lidar{
     bool update();
 
     dataBlock getData();
-    block getBlock();
+
+    bool checkSum(rawBlock_type &rawBlock);
 
 
 

@@ -1,15 +1,19 @@
 #include <lidar.h>
 
+#ifdef DEBUG
+    #define _PL(x) Serial.println(x)
+    #define _PP(x) Serial.print(x)
+#else
+    #define _PL(x)
+    #define _PP(x)
+#endif
 
-block blocks[60];
-dataBlock sensorData[60];
+dataBlock sensorData[60]; // this array holds the date of a full revolution
 
 Lidar::Lidar(Stream &serial){
     _serial = &serial;
 
 }
-
-
 
 
 void Lidar::begin(){
@@ -22,34 +26,48 @@ void Lidar::end(){
 
 
 bool Lidar::update(){
+     
 
-    if((*_serial).available() < BLOCK_SIZE){
-        return true;
+    if((*_serial).available() < BLOCK_SIZE){  // return immedietly if there's not enough bytes
+        return false;
     }
 
     if ((*_serial).peek() != 0xFA){
         while ( (*_serial).peek() != 0xFA ){ (*_serial).read(); }
     }
 
-    (*_serial).readBytes(blocks[0].bytes, BLOCK_SIZE);
+    rawBlock_type rawBlock;  // holds the raw data
 
-    
+    (*_serial).readBytes(rawBlock.bytes, BLOCK_SIZE); // read
 
-    int angleIndex = blocks[0].bytes[1] - 0xA0;  // a
+    if(!checkSum(rawBlock)){
+        return false;
+    }
 
-    sensorData[angleIndex].rpm = blocks[0].bytes[2] + (blocks[0].bytes[3] << 8); // get rpm
+
+    int angleIndex = rawBlock.bytes[1] - 0xA0;  // angle index range is 0xA0 to 0xDB  - (0-60)
+
+    sensorData[angleIndex].rpm = rawBlock.bytes[2] + (rawBlock.bytes[3] << 8); // get rpm
     
 
     uint16_t *intensPtr = &sensorData[angleIndex].intensity[0];
-    uint16_t *distPtr = &sensorData[angleIndex].dist[0];
+    uint16_t *distPtr   = &sensorData[angleIndex].dist[0];
 
+    /*
+    ------------------
+    |intensity |low  |
+    |intensity |high |
+    |dist      |low  |
+    |dist      |high |
+    |reserved  |low  |
+    |reserved  |high |
+    */
     for (int i = 4; i < 40; i += 6){
-        *intensPtr++ = blocks[0].bytes[i] + (blocks[0].bytes[i + 1] << 8);
+        *intensPtr++ = rawBlock.bytes[i] + (rawBlock.bytes[i + 1] << 8);
 
-        *distPtr++ = blocks[0].bytes[i + 2] + (blocks[0].bytes[i + 3] << 8);
+        *distPtr++ = rawBlock.bytes[i + 2] + (rawBlock.bytes[i + 3] << 8);
 
     }
-
 
     return true;
 }
@@ -59,7 +77,25 @@ dataBlock Lidar::getData(){
     return sensorData[0];
 }
 
+bool Lidar::checkSum(rawBlock_type &rawBlock) 
+{
+    byte sum = 0;
+    for (int i = 0; i <= 39; i++)
+    {
+        /* code */
+        sum += rawBlock.bytes[i];
+    }
 
-block Lidar::getBlock(){
-    return blocks[0];
+    _PP("ff - sum: ");
+    sum = 0xFF - sum;
+    _PL(sum);
+
+    _PP("40: ");
+    _PL(rawBlock.bytes[40]);
+
+    _PP("41: ");
+    _PL(rawBlock.bytes[41]);
+
+    return sum == rawBlock.bytes[40] || sum == rawBlock.bytes[41];
+    
 }
