@@ -8,7 +8,6 @@
     #define _PP(x)
 #endif
 
-dataBlock sensorData[60]; // this array holds the date of a full revolution
 
 Lidar::Lidar(Stream &serial){
     _serial = &serial;
@@ -47,6 +46,12 @@ bool Lidar::update(){
 
     int angleIndex = rawBlock.bytes[1] - 0xA0;  // angle index range is 0xA0 to 0xDB  - (0-60)
 
+
+    if (angleIndex == 0){  // if we got a full revolution 
+        updateLidarData();
+    }
+    
+
     sensorData[angleIndex].rpm = rawBlock.bytes[2] + (rawBlock.bytes[3] << 8); // get rpm
     
 
@@ -73,9 +78,10 @@ bool Lidar::update(){
 }
 
 
-dataBlock Lidar::getData(){
-    return sensorData[0];
+lidarData_type Lidar::getData(){
+    return lidarData;
 }
+
 
 bool Lidar::checkSum(rawBlock_type &rawBlock) 
 {
@@ -98,4 +104,22 @@ bool Lidar::checkSum(rawBlock_type &rawBlock)
 
     return sum == rawBlock.bytes[40] || sum == rawBlock.bytes[41];
     
+}
+
+/**
+ * @brief updates the lidarData struct with the data from the sensorData array
+*/
+void Lidar::updateLidarData()
+{
+    for (int i = 0; i < 60; i++)
+    {
+        /* code */
+        for (int j = 0; j < 6; j++)
+        {
+            /* code */
+            lidarData.intensity[i * 6 + j] = sensorData[i].intensity[j];
+            lidarData.dist[i * 6 + j] = sensorData[i].dist[j];
+        }
+        
+    } 
 }
