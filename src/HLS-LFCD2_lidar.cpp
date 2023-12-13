@@ -1,4 +1,4 @@
-#include "lidar.h"
+#include "HLS-LFCD2_lidar.h"
 
 #ifdef DEBUG
     #define _PL(x) Serial.println(x)
