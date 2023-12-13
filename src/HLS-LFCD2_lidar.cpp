@@ -11,11 +11,13 @@
 
 Lidar::Lidar(Stream &serial){
     _serial = &serial;
+    rpm = 0;
 
 }
 
 
 void Lidar::begin(){
+    startTime = millis();
     (*_serial).write('b');
 } 
 
@@ -52,7 +54,9 @@ bool Lidar::update(){
     }
     
 
-    sensorData[angleIndex].rpm = rawBlock.bytes[2] + (rawBlock.bytes[3] << 8); // get rpm
+    sensorData[angleIndex].rpm = (rawBlock.bytes[2] + (rawBlock.bytes[3] << 8)) / 10; // get rpm
+
+    rpm = sensorData[angleIndex].rpm;
     
 
     uint16_t *intensPtr = &sensorData[angleIndex].intensity[0];
@@ -122,4 +126,20 @@ void Lidar::updateLidarData()
         }
         
     } 
+}
+
+bool Lidar::isRunning()
+{
+    return 280 < rpm  && rpm < 320;
+}
+
+bool Lidar::waitForStartup()
+{
+    while(!this->isRunning()){
+        this->update();
+        if(millis() - startTime > LIDAR_TIME_OUT){
+            return false;
+        }
+    }
+    return true;
 }
