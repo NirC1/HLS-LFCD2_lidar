@@ -51,7 +51,7 @@ class Lidar{
     ulong startTime;
 
     void updateLidarData();
-    bool checkSum(rawBlock_type &rawBlock);
+    bool checksum(rawBlock_type &rawBlock);
 
 };
 

@@ -41,7 +41,7 @@ bool Lidar::update(){
 
     (*_serial).readBytes(rawBlock.bytes, BLOCK_SIZE); // read
 
-    if(!checkSum(rawBlock)){
+    if(!checksum(rawBlock)){
         return false;
     }
 
@@ -87,7 +87,7 @@ lidarData_type Lidar::getData(){
 }
 
 
-bool Lidar::checkSum(rawBlock_type &rawBlock) 
+bool Lidar::checksum(rawBlock_type &rawBlock) 
 {
     byte sum = 0;
     for (int i = 0; i <= 39; i++)
